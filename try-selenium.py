@@ -14,50 +14,50 @@ from selenium.webdriver.common.by import By
 
 
 driver = webdriver.Chrome()
-# df = pd.DataFrame(columns=["TEAM", "YEAR", "GP", "W", "L"])
 
-url = "https://www.nba.com/stats/teams/traditional?Season=1996-97&dir=A&sort=W_PCT"
-driver.get(url)
+for year in range(1996, 2023):
+    #generate URL
+    # url = "https://www.nba.com/stats/teams/traditional?Season=1996-97&dir=A&sort=W_PCT"
+    end_year = int(str(year)[-2:]) + 1
+    if year == 1999:
+        end_year = "00"
+    elif end_year < 10:
+        end_year = "0" + str(end_year)
+    else:
+        end_year = str(end_year)
 
-# for year in range(1996, 2023):
-    
-# .Crom_body__UYOcU
+    url = f"https://www.nba.com/stats/teams/traditional?Season={year}-{end_year}&dir=A&sort=W"
 
-# print(wrapper.text)
-# print(wrapper)
-# print(len(wrapper))
-headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
-headers = []
-for e in headers_ele[2:]: #first two are empty/team name stuff
-    text = e.text
+    #nav to URL and get data
+    driver.get(url)
+    headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
+    headers = []
+    for e in headers_ele[2:]: #first two are empty/team name stuff
+        text = e.text
 
-    if text == "":
-        break
+        if text == "":
+            break
 
-    headers.append(e.text)
+        headers.append(e.text)
 
-df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
+    #shove data into new dataframe
+    df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
+    rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
+    for r in rows:
+        team = r.find_element(By.CSS_SELECTOR, ".StatsTeamsTraditionalTable_teamLogoSpan__1HRTS").text
+        cols = r.find_elements(By.CSS_SELECTOR, "td")
+        stats = []
+        for c in cols[2:]:
+            stats.append(c.text)
 
-rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
-for r in rows:
-    team = r.find_element(By.CSS_SELECTOR, ".StatsTeamsTraditionalTable_teamLogoSpan__1HRTS").text
-    cols = r.find_elements(By.CSS_SELECTOR, "td")
-    stats = []
-    for c in cols[2:]:
-        stats.append(c.text)
+        data = [[team, *stats]]
+        temp_df = pd.DataFrame(data, columns=["TEAM", *headers]) 
+        
+        temp_df['YEAR'] = year
+        
+        df = pd.concat([df, temp_df])
 
-    # data_tuples = list(zip(players_list[1:],salaries_list[1:])) # list of each players name and salary paired together
-    data = [[team, *stats]]
-    print(data)
-    temp_df = pd.DataFrame(data, columns=["TEAM", *headers]) # creates dataframe of each tuple in list
-    
-    year = "1996"
-    temp_df['YEAR'] = year
-    
-    df = pd.concat([df, temp_df])
-
-
-print(df)
+    df.to_csv(f"{year}-{end_year}-standings.csv", index=False)  
 
 driver.quit()
 
