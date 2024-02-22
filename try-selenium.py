@@ -61,10 +61,11 @@ def get_standings():
 
     driver.quit()
 
-"""
-get the advanced stats for each year
-"""
+
 def get_advanced_standings():
+    """
+    get the advanced stats for each year
+    """
     driver = webdriver.Chrome()
 
     for year in range(1996, 2023):
