@@ -61,6 +61,61 @@ def get_standings():
 
     driver.quit()
 
+"""
+get the advanced stats for each year
+"""
+def get_advanced_standings():
+    driver = webdriver.Chrome()
+
+    for year in range(1996, 2023):
+        #generate URL
+        # url = "https://www.nba.com/stats/teams/traditional?Season=1996-97&dir=A&sort=W_PCT"
+        # https://www.nba.com/stats/teams/advanced?Season=1996-97
+        end_year = int(str(year)[-2:]) + 1
+        if year == 1999:
+            end_year = "00"
+        elif end_year < 10:
+            end_year = "0" + str(end_year)
+        else:
+            end_year = str(end_year)
+
+        url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}"
+
+        #nav to URL and get data
+        driver.get(url)
+        # headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
+        # headers = []
+        # for e in headers_ele[2:]: #first two are empty/team name stuff
+        #     text = e.text
+
+        #     if text == "":
+        #         break
+
+        #     headers.append(e.text)
+        # print(headers)
+        headers = ['GP', 'W', 'L', 'MIN', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE', 'POSS']
+
+        #shove data into new dataframe
+        df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
+        rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
+        for r in rows:
+            team = r.find_element(By.CSS_SELECTOR, ".Crom_primary__EajZu").text
+            cols = r.find_elements(By.CSS_SELECTOR, "td")
+            stats = []
+            for c in cols[2:]:
+                stats.append(c.text)
+
+            data = [[team, *stats]]
+            temp_df = pd.DataFrame(data, columns=["TEAM", *headers]) 
+            
+            temp_df['YEAR'] = year
+            
+            df = pd.concat([df, temp_df])
+
+        df.to_csv(f"{year}-{end_year}-standings-advanced.csv", index=False)  
+
+    driver.quit()
+
 
 def get_champs():
     driver = webdriver.Chrome()
@@ -73,8 +128,7 @@ def get_champs():
     rows = driver.find_elements(By.CSS_SELECTOR, "#champions_index tbody > tr")
     print(len(rows))
     for r in rows:
-        # try: #will error out on the borders
-
+        #skip the border rows
         if r.get_attribute("class") == "thead":
             continue 
 
@@ -97,4 +151,4 @@ def get_champs():
     driver.quit()
 
 if __name__ == "__main__":
-    get_champs()
+    get_advanced_standings()
