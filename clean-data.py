@@ -6,6 +6,7 @@ import regex as re
 import requests
 
 from helpers import get_end_year
+import matplotlib.pyplot as plt
 
 def join_standings():
     for year in range(1996, 2023):
@@ -72,11 +73,25 @@ def prune():
     use seaborn to get collinearities to determine which stats to 
     take and leave.
     """
-    df = pd.read_csv(f"./data/all-joined.csv")
+    # df = pd.read_csv(f"./data/all-joined.csv")
+    df = pd.read_csv('./data/all-joined.csv', sep=',', thousands=',')
+    # df["POSS"] = df["POSS"].apply(pd.to_numeric) #convert POSS from str to int
+    # print(df)
+    collinearity_matrix = df.iloc[:, 3:].corr()
+    collinearity_matrix = collinearity_matrix.round(1)
 
-    collinearity_matrix = df.iloc[:, 2:].corr()
-    sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
+    print(collinearity_matrix)
 
+    #specify size of heatmap
+    fig, ax = plt.subplots(figsize=(20, 20))
+
+    #create seaborn heatmap
+    # sns.heatmap(df)
+    # sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
+    sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns, annot=True)
+
+    plt.savefig("seaborn-plot-2.png")
+    
     return
 
 
@@ -100,5 +115,6 @@ def run_lr():
 
 if __name__ == "__main__":
     # join_97_98()
-    join_all_standings()
-    # prune()
+    # join_standings()
+    # join_all_standings()
+    prune()

@@ -5,7 +5,7 @@ import pandas as pd
 import regex as re
 import requests
 from bs4 import BeautifulSoup
-
+import time 
 # from selenium import webdriver
 # from selenium.webdriver.common.keys import Keys
 
@@ -32,15 +32,10 @@ def get_standings():
 
         #nav to URL and get data
         driver.get(url)
-        headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
-        headers = []
-        for e in headers_ele[2:]: #first two are empty/team name stuff
-            text = e.text
-
-            if text == "":
-                break
-
-            headers.append(e.text)
+        time.sleep(3)
+        
+        # headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
+        headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
 
         #shove data into new dataframe
         df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
@@ -76,10 +71,12 @@ def get_advanced_standings():
         # https://www.nba.com/stats/teams/advanced?Season=1996-97
         end_year = get_end_year(year)
 
-        url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}"
-
+        # url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}"
+        url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}&dir=A&sort=W"
+    
         #nav to URL and get data
         driver.get(url)
+        time.sleep(3)
         headers = ['GP', 'W', 'L', 'MIN', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE', 'POSS']
 
         #shove data into new dataframe
@@ -224,5 +221,5 @@ def fix_advanced():
     driver.quit()
 
 if __name__ == "__main__":
-    fix_standings()
-    fix_advanced()
+    get_standings()
+    get_advanced_standings()
