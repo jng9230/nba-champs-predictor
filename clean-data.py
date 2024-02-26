@@ -9,6 +9,7 @@ from helpers import get_end_year
 import matplotlib.pyplot as plt
 
 ALL_JOINED_CSV = f"all-joined.csv"
+ALL_JOINED_CHAMPS_CSV = f"all-join-with-champs.csv"
 
 def join_standings():
     for year in range(1996, 2023):
@@ -93,7 +94,7 @@ def join_all_standings_with_champs():
     champs_col = temp_df.apply(is_champ, axis=1)
     standings_df["IS_CHAMP"] = champs_col
 
-    standings_df.to_csv(f"all-join-with-champs.csv", index=False)    
+    standings_df.to_csv(ALL_JOINED_CHAMPS_CSV, index=False)    
     return
 
 
@@ -103,8 +104,12 @@ def prune():
     take and leave.
     """
     # df = pd.read_csv(f"./data/all-joined.csv")
-    df = pd.read_csv('./data/all-joined.csv', sep=',', thousands=',')
-    # df["POSS"] = df["POSS"].apply(pd.to_numeric) #convert POSS from str to int
+    df = pd.read_csv(f"./data/{ALL_JOINED_CHAMPS_CSV}", sep=',', thousands=',')
+
+    #cut off old years to check data idk
+    # print(df.iloc[532])
+    df = df.loc[532:, :]
+
     # print(df)
     collinearity_matrix = df.iloc[:, 3:].corr()
     collinearity_matrix = collinearity_matrix.round(1)
@@ -119,7 +124,7 @@ def prune():
     # sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
     sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns, annot=True)
 
-    plt.savefig("seaborn-plot-2.png")
+    plt.savefig("./data/seaborn-plot-4.png")
     
     return
 
@@ -143,8 +148,4 @@ def run_lr():
     return
 
 if __name__ == "__main__":
-    # join_97_98()
-    # join_standings()
-    # join_all_standings()
-    # prune()
-    join_all_standings_with_champs()
+    prune()
