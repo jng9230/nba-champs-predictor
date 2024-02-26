@@ -8,6 +8,8 @@ import requests
 from helpers import get_end_year
 import matplotlib.pyplot as plt
 
+ALL_JOINED_CSV = f"all-joined.csv"
+
 def join_standings():
     for year in range(1996, 2023):
         end_year = get_end_year(year)
@@ -65,8 +67,35 @@ def join_all_standings():
         df1 = pd.read_csv(f"./data/{year}-{end_year}-joined.csv")
         df = pd.concat([df, df1])
 
-    df.to_csv(f"all-joined.csv", index=False)
+    df.to_csv(ALL_JOINED_CSV, index=False)
     return
+
+
+def join_all_standings_with_champs():
+    """
+    add an additional column of either 0/1, 1 meaning that that team 
+    won the championship that year
+    """
+    standings_df = pd.read_csv(f"./data/{ALL_JOINED_CSV}")
+    champs_df = pd.read_csv(f"./data/champs-by-year.csv")
+    champs_d = {}
+    for index, row in champs_df.iterrows():
+        year = row["YEAR"]
+        team = row["TEAM"]
+        champs_d[year] = team 
+
+    temp_df = standings_df.loc[:, ["TEAM", "YEAR"]]
+    def is_champ(x):
+        team, year = x[0], x[1]
+
+        return int(champs_d[year + 1] == team) #nba champ in year == season starting in year - 1
+     
+    champs_col = temp_df.apply(is_champ, axis=1)
+    standings_df["IS_CHAMP"] = champs_col
+
+    standings_df.to_csv(f"all-join-with-champs.csv", index=False)    
+    return
+
 
 def prune():
     """
@@ -117,4 +146,5 @@ if __name__ == "__main__":
     # join_97_98()
     # join_standings()
     # join_all_standings()
-    prune()
+    # prune()
+    join_all_standings_with_champs()
