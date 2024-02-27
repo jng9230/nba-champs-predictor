@@ -1,13 +1,12 @@
 import numpy as np
 import seaborn as sns
 import pandas as pd
-
-import regex as re
-import requests
-
 from helpers import get_end_year
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from sklearn.linear_model import *
+from sklearn.model_selection import *
+
 
 ALL_JOINED_CSV = f"all-joined.csv"
 ALL_JOINED_CHAMPS_CSV = f"all-join-with-champs.csv"
@@ -254,8 +253,11 @@ def prune():
     """
     map stats to index in array: best_stats
         - make a new array of [corr, stat] pairs
+
     sort array based on corr
+
     make array into a dict for faster access
+
     for each key in highly_collinear:
         if key is not highest in best_stats, remove key
         highest: higher order in best_stats arr relative to 
@@ -278,6 +280,7 @@ def prune():
         for stat in v:
             if best_stats_d[stat] > k_i:
                 biggest = False
+                break
         
         if biggest:
             keep.append(k)
@@ -307,11 +310,31 @@ def run_lr():
     
     CROSS VALIDATION
     """
+    df = pd.read_csv("./data/pruned.csv")
+    print(df)
+    X = df[['WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']]
+    y = df["IS_CHAMP"]
 
+    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=8)
+    model = LogisticRegression().fit(x_train,y_train)
+    train_predictions = model.predict(x_train)
+    test_predictions = model.predict(x_test)
+    train_predictions = model.predict(x_train)
+
+    test_predictions = model.predict(x_test)
+    train_residuals = y_train - train_predictions
+    test_residuals = y_test - test_predictions
+    train_rmse = np.sqrt(np.mean(train_residuals**2))
+    test_rmse = np.sqrt(np.mean(test_residuals**2))
+    print("Train RMSE:",f'{train_rmse:.2f}',"\nTest RMSE:",f'{test_rmse:.2f}')
+    print("Train R Squared",f'{model.score(x_train,y_train):.2f}',"\nTest R Squared",f'{model.score(x_test,y_test):.2f}')
+    
+    score = model.score(x_test, y_test)
+    print(score)
 
     return
 
 if __name__ == "__main__":
     # get_relative_data()
     # join_all_with_ranks()
-    prune()
+    run_lr()
