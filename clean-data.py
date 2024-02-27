@@ -7,6 +7,7 @@ import requests
 
 from helpers import get_end_year
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 ALL_JOINED_CSV = f"all-joined.csv"
 ALL_JOINED_CHAMPS_CSV = f"all-join-with-champs.csv"
@@ -183,7 +184,7 @@ def get_relative_data():
     return
 
 
-def prune():
+def generate_corr():
     """
     use seaborn to get collinearities to determine which stats to 
     take and leave.
@@ -214,6 +215,82 @@ def prune():
     plt.savefig("./data/seaborn-ranks-10-years.png")
     
     return
+
+
+def prune():
+    """
+    given the correlation matrix, we want to prune variables that have
+    a correlation of 0 to winning a championship, as well as variables with
+    0.5 or higher correlation to one another 
+    - 0.5 is an observed value. stats like FG% and PTS, for example, have a 
+    corr of 0.5 and logically are very equivalent to one another; remove them.
+
+
+    - 0.5 might be a bit low, as pairs like (BLKA_RANK, FTA_RANK) are hit
+        - does correctly hit stuff like +-_RANK and DREB_RANK tho (0.516)
+    """
+    df = pd.read_csv(f"./data/{ALL_JOINED_CHAMPS_CSV}", sep=',', thousands=',')
+
+    #cut off old years to check data idk
+    # print(df.iloc[532])
+    # df = df.loc[174:, :] #20 years
+
+    # df = df.loc[532:, :]# 10 years
+
+    collinearity_matrix = df.iloc[:, 3:].corr()
+
+    #find and remove == 0 with champs, >= 0.5
+    ROWS, COLS = collinearity_matrix.shape
+    STATS = list(collinearity_matrix.columns)
+
+    corr = collinearity_matrix.values
+
+    highly_collinear = defaultdict(set) # {[key:stat]: stats_that_are_highly_collinear_to_key[]}
+    for r in range(ROWS):
+        for c in range(r-1):
+            if corr[r][c] >= 0.5:
+                highly_collinear[STATS[r]].add(STATS[c])
+
+    """
+    map stats to index in array: best_stats
+        - make a new array of [corr, stat] pairs
+    sort array based on corr
+    make array into a dict for faster access
+    for each key in highly_collinear:
+        if key is not highest in best_stats, remove key
+        highest: higher order in best_stats arr relative to 
+            all other stats in the dict's values for given key
+    """
+    best_stats = []
+    for i, stat in enumerate(STATS):
+        best_stats.append([corr[-1][i], stat])
+    
+    best_stats.sort(key=lambda x: x[0])
+
+    best_stats_d = {}
+    for i, (corr, stat) in enumerate(best_stats):
+        best_stats_d[stat] = i
+
+    keep = []
+    for k, v in highly_collinear.items():
+        k_i = best_stats_d[k]
+        biggest = True
+        for stat in v:
+            if best_stats_d[stat] > k_i:
+                biggest = False
+        
+        if biggest:
+            keep.append(k)
+        
+    print(keep)
+    """
+    ['WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']
+    """
+    keep1 = ["TEAM", "YEAR", "IS_CHAMP"] + list(keep) 
+
+    df1 = df[keep1]
+    df1.to_csv(f"./data/pruned.csv", index=False)
+    return 
 
 
 def run_lr():
