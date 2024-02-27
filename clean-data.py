@@ -98,6 +98,47 @@ def join_all_standings_with_champs():
     return
 
 
+def get_relative_data():
+    """
+    ranks the teams based on their stats relative to one another for each year
+    - inspired by the lack of meaningful correlation between stats over a 20 year span, 
+    arising from the fact that players and regulations vary from era to era 
+    - rather than comparing, e.g., raw 3P%, we should compare how much better their 3P% is 
+    relative to the league for that year 
+    - e.g.: warriors' 2017 ORTG may be leading the league in 2017, but will make them 
+    very middle of the road in 2023
+    """
+
+    # removed certain stats like MIN and GP
+    trad_stats = ['W', 'L', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE']
+    advanced_stats = ['WIN%', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
+    all_stats = trad_stats + advanced_stats
+    
+    # get and sort all stats by year
+    for stat in all_stats:
+        for year in range(1996, 2023):
+            end_year = get_end_year(year)
+            df = pd.read_csv(f"./data/{year}-{end_year}-joined.csv")
+            teams = list(df["TEAM"])
+
+            arr = []
+            for team in teams:
+                series = df.loc[(df["TEAM"] == team)][stat]
+                arr.append([float(series.iloc[0]), team])
+
+            arr.sort(key=lambda x: x[0], reverse=True)
+
+            # rank each team
+            d = {}
+            for i, (_, team) in enumerate(arr):
+                d[team] = i + 1
+            
+            print(stat, year, d)    
+    # rank each team for each stat and year
+            
+    return
+
+
 def prune():
     """
     use seaborn to get collinearities to determine which stats to 
@@ -108,7 +149,7 @@ def prune():
 
     #cut off old years to check data idk
     # print(df.iloc[532])
-    df = df.loc[532:, :]
+    # df = df.loc[174:, :]
 
     # print(df)
     collinearity_matrix = df.iloc[:, 3:].corr()
@@ -124,7 +165,7 @@ def prune():
     # sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
     sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns, annot=True)
 
-    plt.savefig("./data/seaborn-plot-4.png")
+    plt.savefig("./data/seaborn-all-years.png")
     
     return
 
@@ -148,4 +189,4 @@ def run_lr():
     return
 
 if __name__ == "__main__":
-    prune()
+    get_relative_data()
