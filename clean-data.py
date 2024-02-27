@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 
 ALL_JOINED_CSV = f"all-joined.csv"
 ALL_JOINED_CHAMPS_CSV = f"all-join-with-champs.csv"
+ALL_JOINED_RANKS_CSV = f"./data/all-join-ranks.csv"
+ALL_JOINED_CHAMPS_AND_RANKS_CSV = f"./data/all-join-with-champs-and-ranks.csv"
 
 def join_standings():
     for year in range(1996, 2023):
@@ -98,6 +100,41 @@ def join_all_standings_with_champs():
     return
 
 
+def join_all_with_ranks():
+    # join all years
+    df = pd.read_csv(f"./data/1996-97-stats-ranked.csv")
+    for year in range(1997, 2023):
+        end_year = get_end_year(year)
+
+        #read in datasets and make them into dataframes
+        df1 = pd.read_csv(f"./data/{year}-{end_year}-stats-ranked.csv")
+        df = pd.concat([df, df1])
+
+    df.to_csv(ALL_JOINED_RANKS_CSV, index=False)
+
+    # add in champs
+    standings_df = pd.read_csv(f"{ALL_JOINED_RANKS_CSV}")
+    champs_df = pd.read_csv(f"./data/champs-by-year.csv")
+    champs_d = {}
+    for index, row in champs_df.iterrows():
+        year = row["YEAR"]
+        team = row["TEAM"]
+        champs_d[year] = team 
+
+    temp_df = standings_df.loc[:, ["TEAM", "YEAR"]]
+    def is_champ(x):
+        team, year = x[0], x[1]
+
+        return int(champs_d[year + 1] == team) #nba champ in year == season starting in year - 1
+     
+    champs_col = temp_df.apply(is_champ, axis=1)
+    standings_df["IS_CHAMP"] = champs_col
+
+    standings_df.to_csv(ALL_JOINED_CHAMPS_CSV, index=False)  
+
+    return
+
+
 def get_relative_data():
     """
     ranks the teams based on their stats relative to one another for each year
@@ -109,23 +146,23 @@ def get_relative_data():
     very middle of the road in 2023
     """
 
-    # removed certain stats like MIN and GP
-    trad_stats = ['W', 'L', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE']
-    advanced_stats = ['WIN%', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
+    # removed certain stats like MIN, GP, POSS
+    trad_stats = ['WIN%', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
+    advanced_stats = ['W', 'L', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE']
     all_stats = trad_stats + advanced_stats
     
     # get and sort all stats by year
-    for stat in all_stats:
-        for year in range(1996, 2023):
-            end_year = get_end_year(year)
-            df = pd.read_csv(f"./data/{year}-{end_year}-joined.csv")
-            teams = list(df["TEAM"])
-
+    for year in range(1996, 2023):
+        end_year = get_end_year(year)
+        df = pd.read_csv(f"./data/{year}-{end_year}-joined.csv")
+        teams = list(df["TEAM"])
+        for stat in all_stats:
+        # for stat in ["W", "L"]:
             arr = []
             for team in teams:
                 series = df.loc[(df["TEAM"] == team)][stat]
                 arr.append([float(series.iloc[0]), team])
-
+        
             arr.sort(key=lambda x: x[0], reverse=True)
 
             # rank each team
@@ -133,8 +170,15 @@ def get_relative_data():
             for i, (_, team) in enumerate(arr):
                 d[team] = i + 1
             
-            print(stat, year, d)    
-    # rank each team for each stat and year
+            temp_df = df.loc[:, ["TEAM"]]
+            def get_rank(x):
+                return d[x[0]]
+            thing = temp_df.apply(get_rank, axis=1)
+            # print(stat, year)
+            # print(thing)
+            df[f"{stat}_RANK"] = thing
+
+        df.to_csv(f"./data/{year}-{end_year}-stats-ranked.csv")
             
     return
 
@@ -149,7 +193,9 @@ def prune():
 
     #cut off old years to check data idk
     # print(df.iloc[532])
-    # df = df.loc[174:, :]
+    # df = df.loc[174:, :] #20 years
+
+    df = df.loc[532:, :]# 10 years
 
     # print(df)
     collinearity_matrix = df.iloc[:, 3:].corr()
@@ -158,14 +204,14 @@ def prune():
     print(collinearity_matrix)
 
     #specify size of heatmap
-    fig, ax = plt.subplots(figsize=(20, 20))
+    fig, ax = plt.subplots(figsize=(50, 50))
 
     #create seaborn heatmap
     # sns.heatmap(df)
     # sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
     sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns, annot=True)
 
-    plt.savefig("./data/seaborn-all-years.png")
+    plt.savefig("./data/seaborn-ranks-10-years.png")
     
     return
 
@@ -189,4 +235,6 @@ def run_lr():
     return
 
 if __name__ == "__main__":
-    get_relative_data()
+    # get_relative_data()
+    # join_all_with_ranks()
+    prune()
