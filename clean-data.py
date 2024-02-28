@@ -198,7 +198,7 @@ def generate_corr():
     df = df.loc[532:, :]# 10 years
 
     # print(df)
-    collinearity_matrix = df.iloc[:, 3:].corr()
+    collinearity_matrix = df.iloc[:, 2:].corr()
     collinearity_matrix = collinearity_matrix.round(1)
 
     print(collinearity_matrix)
@@ -211,7 +211,7 @@ def generate_corr():
     # sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns,cmap="crest", annot=True)
     sns.heatmap(collinearity_matrix, xticklabels=collinearity_matrix.columns,yticklabels=collinearity_matrix.columns, annot=True)
 
-    plt.savefig("./data/seaborn-ranks-10-years.png")
+    plt.savefig("./data/seaborn-ranks-with-year.png")
     
     return
 
@@ -236,7 +236,7 @@ def prune():
 
     # df = df.loc[532:, :]# 10 years
 
-    collinearity_matrix = df.iloc[:, 3:].corr()
+    collinearity_matrix = df.iloc[:, 2:].corr()
 
     #find and remove == 0 with champs, >= 0.5
     ROWS, COLS = collinearity_matrix.shape
@@ -246,8 +246,8 @@ def prune():
 
     highly_collinear = defaultdict(set) # {[key:stat]: stats_that_are_highly_collinear_to_key[]}
     for r in range(ROWS):
-        for c in range(r-1):
-            if corr[r][c] >= 0.5:
+        for c in range(r):
+            if abs(corr[r][c]) >= 0.5:
                 highly_collinear[STATS[r]].add(STATS[c])
 
     """
@@ -270,15 +270,18 @@ def prune():
     best_stats.sort(key=lambda x: x[0])
 
     best_stats_d = {}
+    print(best_stats_d)
+
+    # NEED TO MANUALLY REMOVE COLLINEARITIES; USE DOMAIN KNOWLEDGE
     for i, (corr, stat) in enumerate(best_stats):
         best_stats_d[stat] = i
 
     keep = []
     for k, v in highly_collinear.items():
-        k_i = best_stats_d[k]
+        k_i = abs(best_stats_d[k])
         biggest = True
         for stat in v:
-            if best_stats_d[stat] > k_i:
+            if abs(best_stats_d[stat]) > k_i:
                 biggest = False
                 break
         
@@ -287,12 +290,20 @@ def prune():
         
     print(keep)
     """
-    ['WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']
+    without year: ['WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']
+    with year: ['WIN%', 'PTS', 'FGM', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']
+    with absolute value on corr and year: ['WIN%', 'PTS', 'FGM', 'DREB', 'NETRTG', 'PIE', 'REB%', 'FGA_RANK', '3PM_RANK', 'FTM_RANK', 
+        'FT%_RANK', 'OREB_RANK', 'BLKA_RANK', 'PF_RANK']
+    
+    ['WIN%', 'PTS', 'FGM', 'FTA', 'DREB', 'NETRTG', 'PIE', 'REB%', 'FGA_RANK', '3PM_RANK', '3PA_RANK', 'FTM_RANK', 'FT%_RANK', 
+        'OREB_RANK', 'BLKA_RANK', 'PF_RANK']
     """
     keep1 = ["TEAM", "YEAR", "IS_CHAMP"] + list(keep) 
 
     df1 = df[keep1]
-    df1.to_csv(f"./data/pruned.csv", index=False)
+    # df1 = df
+    df1.reset_index(drop=True, inplace=True)
+    df1.to_csv(f"./data/pruned-3.csv", index=False)
     return 
 
 
@@ -310,9 +321,21 @@ def run_lr():
     
     CROSS VALIDATION
     """
-    df = pd.read_csv("./data/pruned.csv")
-    print(df)
-    X = df[['WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']]
+    # df = pd.read_csv("./data/pruned.csv")
+    # df = pd.read_csv("./data/all-join-ranks.csv")
+    df = pd.read_csv("./data/pruned-3.csv")
+    COLS = list(df.columns)
+    # print("COLS before: ")
+    # print(COLS)
+    COLS.remove("TEAM")
+    COLS.remove("IS_CHAMP")
+    # COLS.remove("Unnamed: 0")
+    # COLS.remove("GP")
+    # print("COLS after: ")
+    # print(COLS)
+    # X = df[['YEAR', 'WIN%', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']]
+    X = df[COLS]
+    #['WIN%', 'PTS', 'FGM', 'DREB', 'NETRTG', 'OREB%', 'PIE', 'REB%', 'OFFRTG_RANK', 'TS%_RANK', 'FGA_RANK', '3PM_RANK', 'OREB_RANK']
     y = df["IS_CHAMP"]
 
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=8)
@@ -332,9 +355,12 @@ def run_lr():
     score = model.score(x_test, y_test)
     print(score)
 
+    print(model.coef_)
     return
 
 if __name__ == "__main__":
     # get_relative_data()
     # join_all_with_ranks()
+    # prune()
+    # generate_corr()
     run_lr()
