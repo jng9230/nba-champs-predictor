@@ -306,7 +306,7 @@ def prune():
     df1.to_csv(f"./data/pruned-3.csv", index=False)
     return 
 
-
+COLS_FOR_MODEL = ['YEAR', 'WIN%', 'PTS', 'FGM', 'FTA', 'DREB', 'NETRTG', 'PIE', 'REB%', 'FGA_RANK', '3PM_RANK', '3PA_RANK', 'FTM_RANK', 'FT%_RANK', 'OREB_RANK', 'BLKA_RANK', 'PF_RANK']
 def run_lr():
     """
     run the logistic regression
@@ -340,6 +340,10 @@ def run_lr():
     y = df["IS_CHAMP"]
 
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=8)
+
+    # remove feature names
+    x_train, x_test, y_train, y_test = x_train.values, x_test.values, y_train.values, y_test.values
+
     model = LogisticRegression().fit(x_train,y_train)
     train_predictions = model.predict(x_train)
     test_predictions = model.predict(x_test)
@@ -359,12 +363,55 @@ def run_lr():
 
     print(model.coef_)
 
-    dump(model, "model-2-28-24.joblib")
+    dump(model, "./models/model-2-28-24.joblib")
     return
 
+def predict():
+    model = load("./model-2-28-24.joblib")
+    df = pd.read_csv("./data/pruned-3.csv")
+    COLS = COLS_FOR_MODEL
+
+    # want: print team, year, actual, pred
+    # make above into another dataframe?
+    def use_model_on_row(row):
+        cols = row[COLS]
+        return model.predict([cols])[0]
+    
+    preds = df.apply(use_model_on_row, axis=1)
+
+    def use_model_for_probs(row):
+        cols = row[COLS]
+        cols = cols.to_numpy()
+        cols = cols.astype(float)
+        # print(model.predict_proba([cols]))
+        # model.predict([cols])[0]
+        # model.predict_proba([cols])
+        # print(model.predict_proba([cols])[0][1])
+        return model.predict_proba([cols])[0][1]
+    probs = df.apply(use_model_for_probs, axis=1)
+
+    # print(preds)
+    # print(df)
+    df1 = df[["TEAM", *COLS, "IS_CHAMP"]]
+    df1["IS_CHAMP_PRED"] = preds
+    df1["IS_CHAMP_PRED_PROB"] = probs
+    df1.to_csv("./data/preds.csv")
+    # print(model.predict(df.loc[0, :]))
+    # temp = df.iloc[0,:]
+    # temp = temp[COLS]
+
+    # print(model.predict((temp.to_numpy()).reshape(-1, 1)))
+    # print(model.predict((temp.to_numpy()).reshape(-1, 1)))
+    # print(temp)
+    # print(temp.to_numpy())
+    # temp1 = temp.to_numpy()
+    # print(model.predict(temp1.reshape(-1, 1)))
+    # print(model.predict([temp]))
+    return
 if __name__ == "__main__":
     # get_relative_data()
     # join_all_with_ranks()
     # prune()
     # generate_corr()
-    run_lr()
+    # run_lr()
+    predict()
