@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from sklearn.linear_model import *
 from sklearn.model_selection import *
-
+from joblib import load, dump
 
 ALL_JOINED_CSV = f"all-joined.csv"
 ALL_JOINED_CHAMPS_CSV = f"all-join-with-champs.csv"
@@ -329,6 +329,7 @@ def run_lr():
     # print(COLS)
     COLS.remove("TEAM")
     COLS.remove("IS_CHAMP")
+    # COLS.remove("YEAR")
     # COLS.remove("Unnamed: 0")
     # COLS.remove("GP")
     # print("COLS after: ")
@@ -345,6 +346,7 @@ def run_lr():
     train_predictions = model.predict(x_train)
 
     test_predictions = model.predict(x_test)
+    print(test_predictions)
     train_residuals = y_train - train_predictions
     test_residuals = y_test - test_predictions
     train_rmse = np.sqrt(np.mean(train_residuals**2))
@@ -356,6 +358,8 @@ def run_lr():
     print(score)
 
     print(model.coef_)
+
+    dump(model, "model-2-28-24.joblib")
     return
 
 if __name__ == "__main__":
