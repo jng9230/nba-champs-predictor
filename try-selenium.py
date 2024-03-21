@@ -220,6 +220,12 @@ def fix_advanced():
 
     driver.quit()
 
+
+def do_something():
+    print("HELLO WORLD")
+    return
+
 if __name__ == "__main__":
-    get_standings()
-    get_advanced_standings()
+    # get_standings()
+    # get_advanced_standings()
+    do_something()

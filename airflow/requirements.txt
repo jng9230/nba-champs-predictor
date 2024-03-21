@@ -1,0 +1,5 @@
+joblib==1.3.2
+pandas
+Requests==2.31.0
+selenium==4.18.1
+scikit-learn
