@@ -72,13 +72,11 @@ def update_model():
                 # url = "https://www.youtube.com/"
                 print(url)
                 driver.get(url)
-                print("starting to wait")
-                time.sleep(10)
+                time.sleep(5)
                 # wait = WebDriverWait(driver, 10)
                 # wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')))
 
                 # print("wait is over")
-                print(driver.page_source)
 
                 headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
                 df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
@@ -108,8 +106,9 @@ def update_model():
 
             def get_advanced_stats():
                 url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}&dir=A&sort=W"
+                
                 driver.get(url)
-                time.sleep(10)
+                time.sleep(5)
                 headers = ['GP', 'W', 'L', 'MIN', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE', 'POSS']
 
                 df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
@@ -170,7 +169,9 @@ def update_model():
             df1 = get_trad_stats()
             df2 = get_advanced_stats()
             cols_to_use = df2.columns.difference(df1.columns)
-            df3 = pd.merge(df1, df2[cols_to_use], left_index=True, right_index=True, how='outer')
+            print(cols_to_use)
+            # df3 = pd.merge(df1, df2[cols_to_use], left_index=True, right_index=True, how='outer')
+            df3 = pd.merge(df1, df2[cols_to_use], how="outer")
             print("MERGED TRAD AND ADVANCED:")
             print(df3.shape)
             print(df3)
