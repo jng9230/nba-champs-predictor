@@ -27,6 +27,9 @@ def update_model():
     from selenium import webdriver
     from selenium.webdriver.common.by import By
     from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.support.wait import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    
     import time
     import pandas as pd
     from joblib import load, dump
@@ -41,13 +44,18 @@ def update_model():
         # with webdriver.Remote(f'{remote_webdriver}:4444/wd/hub', options=options) as driver:
         remote_webdriver = 'remote_chromedriver'
         options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')
+        
+        # fixes some timeout stuff 
+        options.add_argument('--no-sandbox') 
         options.add_argument('--disable-dev-shm-usage')
-        # options.add_argument("--headless=new")
-        options.headless = False
+
+        # act as if running regular chrome?
+        # options.add_argument("--disable-blink-features=AutomationControlled") 
         with webdriver.Remote(f'{remote_webdriver}:4444/wd/hub', options=options) as driver:
 
-            year = datetime.date.today().year
+            # year = datetime.date.today().year
+            year = datetime.date.today().year - 1 # NBA seasons start in curr_year - 1
+
             end_year = int(str(year)[-2:]) + 1
             if year == 1999:
                 end_year = "00"
@@ -58,16 +66,23 @@ def update_model():
 
             def get_trad_stats():
                 url = f"https://www.nba.com/stats/teams/traditional?Season={year}-{end_year}&dir=A&sort=W"
+                # url = "https://en.wikipedia.org/wiki/1992_United_States_men%27s_Olympic_basketball_team"
+                # url = "https://www.basketball-reference.com/international/mens-olympics/1992.html"
+                # url = "https://www.nba.com/stats"
+                # url = "https://www.youtube.com/"
                 print(url)
                 driver.get(url)
-                time.sleep(10) 
+                print("starting to wait")
+                time.sleep(10)
+                # wait = WebDriverWait(driver, 10)
+                # wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')))
 
+                # print("wait is over")
                 print(driver.page_source)
 
                 headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
                 df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
                 rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
-
                 
                 print("TRAD ROWS FOUND:")
                 print(rows)

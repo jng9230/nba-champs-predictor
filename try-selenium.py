@@ -17,44 +17,47 @@ from helpers import get_end_year
 def get_standings():
     driver = webdriver.Chrome()
 
-    for year in range(1996, 2023):
-        #generate URL
-        # url = "https://www.nba.com/stats/teams/traditional?Season=1996-97&dir=A&sort=W_PCT"
-        end_year = int(str(year)[-2:]) + 1
-        if year == 1999:
-            end_year = "00"
-        elif end_year < 10:
-            end_year = "0" + str(end_year)
-        else:
-            end_year = str(end_year)
+    # for year in range(1996, 2023):
+    year = 2023
+    #generate URL
+    # url = "https://www.nba.com/stats/teams/traditional?Season=1996-97&dir=A&sort=W_PCT"
+    end_year = int(str(year)[-2:]) + 1
+    if year == 1999:
+        end_year = "00"
+    elif end_year < 10:
+        end_year = "0" + str(end_year)
+    else:
+        end_year = str(end_year)
 
-        url = f"https://www.nba.com/stats/teams/traditional?Season={year}-{end_year}&dir=A&sort=W"
+    url = f"https://www.nba.com/stats/teams/traditional?Season={year}-{end_year}&dir=A&sort=W"
 
-        #nav to URL and get data
-        driver.get(url)
-        time.sleep(3)
+    #nav to URL and get data
+    driver.get(url)
+    time.sleep(3)
+    
+    # headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
+    headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
+
+    #shove data into new dataframe
+    df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
+    rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
+    print(rows)
+    print(len(rows))
+    for r in rows:
+        team = r.find_element(By.CSS_SELECTOR, ".StatsTeamsTraditionalTable_teamLogoSpan__1HRTS").text
+        cols = r.find_elements(By.CSS_SELECTOR, "td")
+        stats = []
+        for c in cols[2:]:
+            stats.append(c.text)
+
+        data = [[team, *stats]]
+        temp_df = pd.DataFrame(data, columns=["TEAM", *headers]) 
         
-        # headers_ele = driver.find_elements(By.CSS_SELECTOR, '.Crom_headers__mzI_m > th')
-        headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
+        temp_df['YEAR'] = year
+        
+        df = pd.concat([df, temp_df])
 
-        #shove data into new dataframe
-        df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
-        rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
-        for r in rows:
-            team = r.find_element(By.CSS_SELECTOR, ".StatsTeamsTraditionalTable_teamLogoSpan__1HRTS").text
-            cols = r.find_elements(By.CSS_SELECTOR, "td")
-            stats = []
-            for c in cols[2:]:
-                stats.append(c.text)
-
-            data = [[team, *stats]]
-            temp_df = pd.DataFrame(data, columns=["TEAM", *headers]) 
-            
-            temp_df['YEAR'] = year
-            
-            df = pd.concat([df, temp_df])
-
-        df.to_csv(f"{year}-{end_year}-standings.csv", index=False)  
+    # df.to_csv(f"{year}-{end_year}-standings.csv", index=False)  
 
     driver.quit()
 
@@ -226,6 +229,6 @@ def do_something():
     return
 
 if __name__ == "__main__":
-    # get_standings()
+    get_standings()
     # get_advanced_standings()
-    do_something()
+    # do_something()
