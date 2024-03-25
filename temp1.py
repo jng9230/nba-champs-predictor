@@ -14,6 +14,7 @@ from selenium.webdriver.common.by import By
 
 from helpers import get_end_year
 import datetime
+from joblib import load, dump
 def get_data():
     options = webdriver.ChromeOptions()
     
@@ -36,7 +37,7 @@ def get_data():
         print(url)
         driver = webdriver.Chrome()
         driver.get(url)
-        time.sleep(10)
+        time.sleep(5)
         # wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')))
 
         headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
@@ -69,7 +70,7 @@ def get_data():
         url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}&dir=A&sort=W"
         driver = webdriver.Chrome()
         driver.get(url)
-        time.sleep(10)
+        time.sleep(5)
         headers = ['GP', 'W', 'L', 'MIN', 'OFFRTG', 'DEFRTG', 'NETRTG', 'AST%', 'AST/TO', 'AST_RATIO', 'OREB%', 'DREB%', 'REB%', 'TOV%', 'EFG%', 'TS%', 'PACE', 'PIE', 'POSS']
 
         df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
@@ -143,8 +144,50 @@ def get_data():
 
     return df4
 
+def update_preds(df):
+    model = load("./models/model-2-28-24.joblib")
+    COLS_FOR_MODEL = ['YEAR', 'WIN%', 'PTS', 'FGM', 'FTA', 'DREB', 'NETRTG', 'PIE', 'REB%', 'FGA_RANK', '3PM_RANK', '3PA_RANK', 'FTM_RANK', 'FT%_RANK', 'OREB_RANK', 'BLKA_RANK', 'PF_RANK']
+    COLS = COLS_FOR_MODEL
+
+    # def use_model_on_row(row):
+    #     cols = row[COLS]
+    #     return model.predict([cols])[0]
+    # preds = df.apply(use_model_on_row, axis=1)
+
+    def use_model_for_probs(row):
+        cols = row[COLS]
+        cols = cols.to_numpy()
+        cols = cols.astype(float)
+        return model.predict_proba([cols])[0][1]
+    probs = df.apply(use_model_for_probs, axis=1)
+
+    # df1 = df[["TEAM", *COLS, "IS_CHAMP"]]
+    
+    df1 = df[["TEAM", *COLS]]
+    # df1["IS_CHAMP_PRED"] = preds
+    print(df1)
+    print(df1.shape)
+    print(probs)
+    print(probs.shape)
+    df1["IS_CHAMP_PRED_PROB"] = probs
+
+    return df1
+
+
+def update_website(df):
+    df1 = df[["TEAM", "IS_CHAMP_PRED_PROB"]]
+
+    # TODO: odds? or just normalize the probability to rest of league 
+    #   (team_prob / total_prob == % to win)
+
+
+    pass
+
 if __name__ == "__main__":
     # get_standings()
     # get_advanced_standings()
     # do_something()
-    get_data()
+    df = get_data()
+    df1 = update_preds(df)
+    print(df1)
+    update_website(df1)
