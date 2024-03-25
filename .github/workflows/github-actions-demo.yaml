@@ -16,3 +16,15 @@ jobs:
         run: |
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
+  
+  Update-CSV:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ls
+      # TESTING: (REMOVE THIS LATER) make a new file
+      - run: touch new.txt
+      - run: ls 
+      # remove (if it's there) the old data
+      - run: rm new.txt
+      # copy over w/e new data there is to the pages repo
+      # - run: 
