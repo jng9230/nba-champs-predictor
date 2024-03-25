@@ -20,10 +20,12 @@ jobs:
   Update-CSV:
     runs-on: ubuntu-latest
     steps:
-      - run: ls
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - run: ls ${{ github.workspace }}
       # TESTING: (REMOVE THIS LATER) make a new file
       - run: touch new.txt
-      - run: ls 
+      - run: ls ${{ github.workspace }}
       # remove (if it's there) the old data
       - run: rm new.txt
       # copy over w/e new data there is to the pages repo
