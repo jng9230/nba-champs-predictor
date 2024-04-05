@@ -5,6 +5,7 @@ import os
 import requests
 from airflow.decorators import dag, task
 from airflow.operators.bash import BashOperator
+from airflow.operators.empty import EmptyOperator
 # from airflow.providers.postgres.hooks.postgres import PostgresHook
 # from airflow.providers.postgres.operators.postgres import PostgresOperator
 
@@ -212,7 +213,7 @@ def update_model():
         return df1
     
     @task
-    def update_csv(data):
+    def update_csv(data: pd.DataFrame):
         data.to_csv("./data/preds.csv")
         return
 
@@ -223,11 +224,14 @@ def update_model():
 
     return
 
-update_model_task = update_model()
+# update_model_task = update_model()
+with update_model as dag:
+    update_model_task = EmptyOperator(task_id="idk", dag=dag)
 
-update_website = BashOperator(
-    task_id="update_website",
-    bash_command="scripts/git_push.sh"
-)
+    update_website = BashOperator(
+        task_id="update_website",
+        bash_command="scripts/git_push.sh"
+    )
 
-update_model_task >> update_website
+    # update_model_task >> update_website
+    update_model_task.set_downstream(update_website)
