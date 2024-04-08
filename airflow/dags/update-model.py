@@ -69,7 +69,7 @@ def update_model():
 
         def get_trad_stats():
             url = f"https://www.nba.com/stats/teams/traditional?Season={year}-{end_year}&dir=A&sort=W"
-            print(url)
+            # print(url)
             driver = webdriver.Remote(f'{remote_webdriver}:4444/wd/hub', options=options)
             driver.get(url)
             time.sleep(10)
@@ -79,8 +79,8 @@ def update_model():
             headers = ['GP', 'W', 'L', 'WIN%', 'MIN', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL', 'BLK', 'BLKA', 'PF', 'PFD', '+/-']
             df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
             rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
-            print("TRAD ROWS FOUND:")
-            print(len(rows))
+            # print("TRAD ROWS FOUND:")
+            # print(len(rows))
             for r in rows:
                 team = r.find_element(By.CSS_SELECTOR, ".StatsTeamsTraditionalTable_teamLogoSpan__1HRTS").text
                 cols = r.find_elements(By.CSS_SELECTOR, "td")
@@ -95,15 +95,15 @@ def update_model():
                 
                 df = pd.concat([df, temp_df])
             
-            print("TRAD STATS")
-            print(df.shape)
-            print(df)
+            # print("TRAD STATS")
+            # print(df.shape)
+            # print(df)
             driver.quit()
             return df
 
         def get_advanced_stats():
             url = f"https://www.nba.com/stats/teams/advanced?Season={year}-{end_year}&dir=A&sort=W"
-            print(url)
+            # print(url)
 
             driver = webdriver.Remote(f'{remote_webdriver}:4444/wd/hub', options=options)
             driver.get(url)
@@ -113,8 +113,8 @@ def update_model():
 
             df = pd.DataFrame(columns=["TEAM", "YEAR", *headers])
             rows = driver.find_elements(By.CSS_SELECTOR, '.Crom_body__UYOcU > tr')
-            print("ADVANCED ROWS FOUND:")
-            print(len(rows))
+            # print("ADVANCED ROWS FOUND:")
+            # print(len(rows))
             for r in rows:
                 team = r.find_element(By.CSS_SELECTOR, ".Crom_primary__EajZu").text
                 cols = r.find_elements(By.CSS_SELECTOR, "td")
@@ -129,9 +129,9 @@ def update_model():
                 
                 df = pd.concat([df, temp_df])
 
-            print("ADVANCED STATS")
-            print(df.shape)
-            print(df)
+            # print("ADVANCED STATS")
+            # print(df.shape)
+            # print(df)
             driver.quit()
             return df
         
@@ -159,9 +159,9 @@ def update_model():
                 thing = temp_df.apply(get_rank, axis=1)
                 df[f"{stat}_RANK"] = thing
 
-            print("DF WITH RANKS")
-            print(df.shape)
-            print(df)
+            # print("DF WITH RANKS")
+            # print(df.shape)
+            # print(df)
 
             return df
     
@@ -172,12 +172,12 @@ def update_model():
         cols_to_use = list(cols_to_use.values) # convert from Series to array
         cols_to_use.append("TEAM") # join on TEAM later
 
-        print(cols_to_use)
+        # print(cols_to_use)
         df3 = pd.merge(df1, df2[cols_to_use], left_on="TEAM", right_on="TEAM", how="outer")
 
-        print("MERGED TRAD AND ADVANCED:")
-        print(df3.shape)
-        print(df3)
+        # print("MERGED TRAD AND ADVANCED:")
+        # print(df3.shape)
+        # print(df3)
         df4 = get_ranks(df3)
 
         return df4
@@ -204,34 +204,42 @@ def update_model():
         
         df1 = df[["TEAM", *COLS]]
         # df1["IS_CHAMP_PRED"] = preds
-        print(df1)
-        print(df1.shape)
-        print(probs)
-        print(probs.shape)
+        # print(df1)
+        # print(df1.shape)
+        # print(probs)
+        # print(probs.shape)
         df1["IS_CHAMP_PRED_PROB"] = probs
-
+        print(df1.head())
+        
         return df1
     
     @task
     def update_csv(data: pd.DataFrame):
-        data.to_csv("./data/preds.csv")
+        print("@@@ TRYING TO FIND WORKING DIR")
+        print(os.getcwd())
+        print(os.listdir())
+        data.to_csv("preds.csv")
+        print("@@@ AFTER MAKING THE CSV:")
+        print(os.getcwd())
+        print(os.listdir())
         return
 
     df = get_data()
     df1 = update_preds(df)
-    print(df1)
+
     update_csv(df1)
 
     return
 
 # update_model_task = update_model()
-with update_model as dag:
+with update_model() as dag:
     update_model_task = EmptyOperator(task_id="idk", dag=dag)
 
     update_website = BashOperator(
         task_id="update_website",
-        bash_command="scripts/git_push.sh"
+        bash_command="./scripts/git_push.sh",
+        dag=dag
     )
 
-    # update_model_task >> update_website
-    update_model_task.set_downstream(update_website)
+    update_model_task >> update_website
+    # update_model_task.set_downstream(update_website)
