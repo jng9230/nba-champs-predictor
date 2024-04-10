@@ -227,19 +227,37 @@ def update_model():
     df = get_data()
     df1 = update_preds(df)
 
-    update_csv(df1)
-
-    return
-
-# update_model_task = update_model()
-with update_model() as dag:
-    update_model_task = EmptyOperator(task_id="idk", dag=dag)
-
+    # update_csv(df1)
     update_website = BashOperator(
         task_id="update_website",
         bash_command="./scripts/git_push.sh",
-        dag=dag
     )
 
-    update_model_task >> update_website
-    # update_model_task.set_downstream(update_website)
+
+    df1 >> update_website
+
+    return
+
+update_model()
+# update_model_task = update_model()
+
+# update_website = BashOperator(
+#     task_id="update_website",
+#     bash_command="./scripts/git_push.sh",
+# )
+
+
+
+# update_model_task = update_model()
+# with update_model() as dag:
+#     update_model_task = EmptyOperator(task_id="idk", dag=dag)
+
+#     update_website = BashOperator(
+#         task_id="update_website",
+#         bash_command="./scripts/git_push.sh",
+#         trigger_rule="all_done",
+#         dag=dag
+#     )
+
+#     update_model_task >> update_website
+#     # update_model_task.set_downstream(update_website)
